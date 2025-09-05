@@ -1,0 +1,77 @@
+import { ISubscriptionPlan } from "../interfaces";
+import { ESubscriptionPlanType } from "../enums";
+
+export const subscriptionPlanSeedData: ISubscriptionPlan[] = [
+  {
+    isActive: true,
+    type: ESubscriptionPlanType.FREE,
+    liveWorkout: true,
+    workoutLibrary: true,
+    stretches: true,
+    intervalLog: true,
+    tutorialVideos: true,
+    globalStats: true,
+    dailyReports: false,
+    progressGraph: false,
+    leaderboard: false,
+    rollingPlan: false,
+    customWorkouts: false,
+    customStretches: false,
+    coins: 0,
+    fitnessGroupSlots: 0
+  },
+  {
+    isActive: true,
+    type: ESubscriptionPlanType.STARTER,
+    liveWorkout: true,
+    workoutLibrary: true,
+    stretches: true,
+    intervalLog: true,
+    tutorialVideos: true,
+    globalStats: true,
+    dailyReports: false,
+    progressGraph: false,
+    leaderboard: false,
+    rollingPlan: false,
+    customWorkouts: true,
+    customStretches: true,
+    coins: 0,
+    fitnessGroupSlots: 0
+  },
+  {
+    isActive: true,
+    type: ESubscriptionPlanType.PLUS,
+    liveWorkout: true,
+    workoutLibrary: true,
+    stretches: true,
+    intervalLog: true,
+    tutorialVideos: true,
+    globalStats: true,
+    dailyReports: true,
+    progressGraph: true,
+    leaderboard: true,
+    rollingPlan: true,
+    customWorkouts: true,
+    customStretches: true,
+    coins: 10,
+    fitnessGroupSlots: 0
+  },
+  {
+    isActive: true,
+    type: ESubscriptionPlanType.PRO,
+    liveWorkout: true,
+    workoutLibrary: true,
+    stretches: true,
+    intervalLog: true,
+    tutorialVideos: true,
+    globalStats: true,
+    dailyReports: true,
+    progressGraph: true,
+    leaderboard: true,
+    rollingPlan: true,
+    customWorkouts: true,
+    customStretches: true,
+    coins: 20,
+    fitnessGroupSlots: 0
+  }
+];

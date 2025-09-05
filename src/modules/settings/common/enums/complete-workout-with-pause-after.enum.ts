@@ -1,0 +1,6 @@
+export enum ECompleteWorkoutWithPauseAfter {
+  NEVER = "NEVER",
+  TWELVE_HOURS = "TWELVE_HOURS",
+  TWENTY_FOUR_HOURS = "TWENTY_FOUR_HOURS",
+  FORTY_EIGHT_HOURS = "FORTY_EIGHT_HOURS"
+}

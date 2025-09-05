@@ -1,0 +1,17 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": [
+          "FX52K5D4A2.octy.OlympusTest1"
+        ],
+        "components": [
+          {
+            "/": "/*",
+            "comment": "Matches any URLs"
+          }
+        ]
+      }
+    ]
+  }
+}

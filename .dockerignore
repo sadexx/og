@@ -1,0 +1,26 @@
+# Logs
+logs
+*.log
+
+# Dependency directory
+.github
+.vscode
+data
+node_modules
+npm-debug.log
+build
+docker
+
+# Environment
+.env
+.env.example
+
+# Files
+.gitignore
+README.md
+
+# Docker Files
+.dockerignore
+Dockerfile
+docker-compose.yml
+docker-compose.deploy.yml

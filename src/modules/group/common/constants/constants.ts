@@ -1,0 +1,1 @@
+export const MAX__GROUP_PASSWORD_LENGTH = 8;
