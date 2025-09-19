@@ -1,5 +1,15 @@
-import { PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, Entity, Column } from "typeorm";
+import {
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  Entity,
+  Column,
+  OneToOne,
+  OneToMany
+} from "typeorm";
 import { ESubscriptionPlanType } from "../common/enums";
+import { AppStoreProduct } from "../../app-store-product/schemas";
+import { SubscriptionPlanAssignment } from "./subscription-plan-assignment.entity";
 
 @Entity({ name: "subscription_plan" })
 export class SubscriptionPlan {
@@ -57,6 +67,15 @@ export class SubscriptionPlan {
 
   @Column({ type: "integer", name: "fitness_group_slots", default: 0 })
   fitnessGroupSlots: number;
+
+  @OneToOne(() => AppStoreProduct, (appStoreProduct) => appStoreProduct.subscriptionPlan)
+  appStoreProduct: AppStoreProduct;
+
+  @OneToMany(
+    () => SubscriptionPlanAssignment,
+    (subscriptionPlanAssignment) => subscriptionPlanAssignment.subscriptionPlan
+  )
+  subscriptionPlanAssignments: SubscriptionPlanAssignment[];
 
   @CreateDateColumn({ type: "timestamp", name: "created_date" })
   createdDate: Date;

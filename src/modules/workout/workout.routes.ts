@@ -18,6 +18,8 @@ import { WorkoutController } from "./controllers";
 import { GetByIdDto } from "../../common/dto";
 import { roleGuard } from "../../common/guards";
 import { ERole } from "../users/common/enums";
+import { featureAccessGuard } from "../subscription-plan/common/guards";
+import { ESubscriptionFeature } from "../subscription-plan/common/enums";
 
 export class WorkoutsRoutes {
   public path = `/${ERoutes.WORKOUTS}`;
@@ -31,21 +33,25 @@ export class WorkoutsRoutes {
   private initializeRoutes(): void {
     this.router.get(
       `${this.path}`,
+      featureAccessGuard(ESubscriptionFeature.WORKOUT_LIBRARY),
       validationMiddlewareQuery(GetAllWorkoutsDto, globalQueryTransformer),
       this.controller.getAll.bind(this.controller)
     );
     this.router.get(
       `${this.path}/random`,
+      featureAccessGuard(ESubscriptionFeature.WORKOUT_LIBRARY),
       validationMiddlewareQuery(GetRandomWorkoutQueryDto, globalQueryTransformer),
       this.controller.getRandomWorkout.bind(this.controller)
     );
     this.router.get(
       `${this.path}/:id`,
+      featureAccessGuard(ESubscriptionFeature.WORKOUT_LIBRARY),
       validationMiddlewareParams(GetByIdDto),
       this.controller.getById.bind(this.controller)
     );
     this.router.get(
       `${this.path}/:id/workout-exercises`,
+      featureAccessGuard(ESubscriptionFeature.WORKOUT_LIBRARY),
       validationMiddlewareParams(GetByIdDto),
       this.controller.getWorkoutExercisesInWorkout.bind(this.controller)
     );

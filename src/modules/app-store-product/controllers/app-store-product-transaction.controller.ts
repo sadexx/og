@@ -2,8 +2,7 @@ import { Request, Response, type NextFunction } from "express";
 import { plainToInstance } from "class-transformer";
 import { EHttpResponseCode } from "../../../common/enums";
 import { AppStoreProductTransactionService } from "../services";
-import { GetAllAppStoreProductTransactionsDto, ProcessAppStoreProductTransactionsDto } from "../common/dto";
-import { JwtPayload } from "../../auth/common/dto";
+import { GetAllAppStoreProductTransactionsDto, ProcessAppStoreProductTransactionDto } from "../common/dto";
 
 export class AppStoreProductTransactionController {
   constructor(private appStoreProductTransactionService = new AppStoreProductTransactionService()) {}
@@ -19,12 +18,11 @@ export class AppStoreProductTransactionController {
     }
   }
 
-  public async processAppStoreProductTransactions(req: Request, res: Response, next: NextFunction): Promise<void> {
+  public async processAppStoreProductTransaction(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const user = req.user as JwtPayload;
-      const dto = plainToInstance(ProcessAppStoreProductTransactionsDto, req.body);
-      await this.appStoreProductTransactionService.processAppStoreProductTransactions(user.id, dto);
-      res.status(EHttpResponseCode.CREATED).json();
+      const dto = plainToInstance(ProcessAppStoreProductTransactionDto, req.body);
+      await this.appStoreProductTransactionService.processAppStoreProductTransaction(dto);
+      res.status(EHttpResponseCode.OK).json();
     } catch (error) {
       next(error);
     }

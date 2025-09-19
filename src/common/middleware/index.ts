@@ -7,4 +7,3 @@ export * from "./response-metrics.middleware";
 export * from "./validation.middleware-query";
 export * from "./validation.middleware.body";
 export * from "./validation.middleware.params-query";
-export * from "./signature-verification.middleware";

@@ -10,6 +10,8 @@ import { FavoriteWorkoutController } from "./controllers";
 import { GetByIdDto } from "../../common/dto";
 import { roleGuard } from "../../common/guards";
 import { ERole } from "../users/common/enums";
+import { featureAccessGuard } from "../subscription-plan/common/guards";
+import { ESubscriptionFeature } from "../subscription-plan/common/enums";
 
 export class FavoriteWorkoutRoutes {
   public path = `/${ERoutes.FAVORITE_WORKOUTS}`;
@@ -24,12 +26,14 @@ export class FavoriteWorkoutRoutes {
       `${this.path}`,
       customPassportAuthenticate,
       roleGuard([ERole.USER, ERole.COACH]),
+      featureAccessGuard(ESubscriptionFeature.CUSTOM_WORKOUTS),
       this.controller.getAll.bind(this.controller)
     );
     this.router.get(
       `${this.path}/:id`,
       customPassportAuthenticate,
       roleGuard([ERole.USER, ERole.COACH]),
+      featureAccessGuard(ESubscriptionFeature.CUSTOM_WORKOUTS),
       validationMiddlewareParams(GetByIdDto),
       this.controller.getById.bind(this.controller)
     );
@@ -37,6 +41,7 @@ export class FavoriteWorkoutRoutes {
       `${this.path}`,
       customPassportAuthenticate,
       roleGuard([ERole.USER, ERole.COACH]),
+      featureAccessGuard(ESubscriptionFeature.CUSTOM_WORKOUTS),
       validationMiddlewareBody(CreateFavoriteWorkoutDto),
       this.controller.create.bind(this.controller)
     );
@@ -44,6 +49,7 @@ export class FavoriteWorkoutRoutes {
       `${this.path}/:id`,
       customPassportAuthenticate,
       roleGuard([ERole.USER, ERole.COACH]),
+      featureAccessGuard(ESubscriptionFeature.CUSTOM_WORKOUTS),
       validationMiddlewareParams(GetByIdDto),
       validationMiddlewareBody(UpdateFavoriteWorkoutDto),
       this.controller.update.bind(this.controller)
@@ -52,6 +58,7 @@ export class FavoriteWorkoutRoutes {
       `${this.path}/:id`,
       customPassportAuthenticate,
       roleGuard([ERole.USER, ERole.COACH]),
+      featureAccessGuard(ESubscriptionFeature.CUSTOM_WORKOUTS),
       validationMiddlewareParams(GetByIdDto),
       this.controller.delete.bind(this.controller)
     );

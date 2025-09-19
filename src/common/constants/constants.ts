@@ -1,6 +1,10 @@
 import { UUIDVersion } from "validator";
 
 /**
+ ** In days
+ */
+export const NUMBER_OF_DAYS_IN_WEEK: number = 7;
+/**
  ** In hours
  */
 export const NUMBER_OF_HOURS_IN_DAY: number = 24;
@@ -8,10 +12,16 @@ export const NUMBER_OF_HOURS_IN_DAY: number = 24;
  ** In minutes
  */
 export const NUMBER_OF_MINUTES_IN_HOUR: number = 60;
+export const NUMBER_OF_MINUTES_IN_FIFTEEN_DAYS: number = 21600;
+/**
+ ** In seconds
+ */
+export const NUMBER_OF_SECONDS_IN_MINUTE: number = 60;
 /**
  ** In milliseconds
  */
 export const NUMBER_OF_MILLISECONDS_IN_SECOND: number = 1000;
+export const NUMBER_OF_MILLISECONDS_IN_MINUTE: number = NUMBER_OF_MILLISECONDS_IN_SECOND * NUMBER_OF_SECONDS_IN_MINUTE;
 /**
  ** Config
  **/
@@ -47,6 +57,7 @@ export const DEFAULT_API_REDIS_PORT: number = 6379;
 export const REDIS_MAX_RETRIES: number = 3;
 export const REDIS_RETRY_DELAY_MS: number = 1000;
 export const DEFAULT_TRANSACTION_SECRET: string = "Slcv2pi394mx-!@*-vrepihgbvres*298y4nld";
+export const DEFAULT_AWS_SQS_INTERVAL_TIME_MIN: string = "30";
 /**
  ** Other
  **/

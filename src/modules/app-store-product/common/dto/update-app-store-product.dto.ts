@@ -1,4 +1,4 @@
-import { IsNumber, IsOptional, IsString } from "class-validator";
+import { IsNumber, IsOptional, IsString, IsUUID } from "class-validator";
 
 export class UpdateAppStoreProductDto {
   @IsOptional()
@@ -16,4 +16,8 @@ export class UpdateAppStoreProductDto {
   @IsOptional()
   @IsNumber()
   quantity?: number;
+
+  @IsOptional()
+  @IsUUID()
+  subscriptionPlanId?: string;
 }

@@ -1,22 +1,25 @@
-import { EntityManager, In, Repository } from "typeorm";
+import { EntityManager, Repository } from "typeorm";
 import { AppStoreProduct, AppStoreProductTransaction } from "../schemas";
 import { AppDataSource } from "../../../common/configs/db.config";
-import {
-  AppStoreProductTransactionDto,
-  GetAllAppStoreProductTransactionsDto,
-  ProcessAppStoreProductTransactionsDto
-} from "../common/dto";
+import { GetAllAppStoreProductTransactionsDto, ProcessAppStoreProductTransactionDto } from "../common/dto";
 import { PaginationQueryOutput } from "../../../common/outputs";
-import { BadRequestException } from "../../../common/exceptions";
 import { CoinTransactionsService } from "../../coin-transactions/services";
 import { ESortOrder } from "../../../common/enums";
+import { AppStoreTransactionVerificationService } from "./app-store-transaction-verification.service";
+import { findOneOrFail } from "../../../common/utils";
+import { EAppStoreProductType } from "../common/enums";
+import { IAppleJwsPayload, IAppStoreProductTransaction } from "../common/interfaces";
+import { User } from "../../users/schemas";
+import { SubscriptionPlanAssignmentService } from "../../subscription-plan/services";
 
 export class AppStoreProductTransactionService {
-  private readonly appStoreProductRepository: Repository<AppStoreProduct>;
   private readonly appStoreProductTransactionRepository: Repository<AppStoreProductTransaction>;
 
-  constructor(private readonly coinTransactionsService = new CoinTransactionsService()) {
-    this.appStoreProductRepository = AppDataSource.getRepository(AppStoreProduct);
+  constructor(
+    private readonly appStoreTransactionVerificationService = new AppStoreTransactionVerificationService(),
+    private readonly coinTransactionsService = new CoinTransactionsService(),
+    private readonly subscriptionPlanAssignmentService = new SubscriptionPlanAssignmentService()
+  ) {
     this.appStoreProductTransactionRepository = AppDataSource.getRepository(AppStoreProductTransaction);
   }
 
@@ -34,16 +37,8 @@ export class AppStoreProductTransactionService {
         purchaseDate: true,
         originalPurchaseDate: true,
         createdDate: true,
-        appStoreProduct: {
-          id: true,
-          productId: true,
-          name: true
-        },
-        user: {
-          id: true,
-          name: true,
-          email: true
-        }
+        appStoreProduct: { id: true, productId: true, name: true },
+        user: { id: true, name: true, email: true }
       },
       where: { appStoreProduct: { productId: dto.productId }, user: { id: dto.userId } },
       relations: { appStoreProduct: true, user: true },
@@ -59,96 +54,82 @@ export class AppStoreProductTransactionService {
     };
   }
 
-  public async processAppStoreProductTransactions(
-    userId: string,
-    dto: ProcessAppStoreProductTransactionsDto
-  ): Promise<void> {
-    const uniqueProductIds = [...new Set(dto.transactions.map((t) => t.productId))];
-    const appStoreProducts = await this.appStoreProductRepository.find({
-      select: { id: true, quantity: true, productId: true },
-      where: { productId: In(uniqueProductIds) }
-    });
+  public async processAppStoreProductTransaction(dto: ProcessAppStoreProductTransactionDto): Promise<void> {
+    const payload = await this.appStoreTransactionVerificationService.verifyAndDecodeTransactionJWS(
+      dto.jwsRepresentation
+    );
 
-    if (appStoreProducts.length !== uniqueProductIds.length) {
-      throw new BadRequestException("Some of the provided productIds do not exist.");
-    }
+    console.log("USERID", payload.appAccountToken);
 
     await AppDataSource.manager.transaction(async (manager) => {
-      for (const product of appStoreProducts) {
-        const productTransactions = dto.transactions.filter(
-          (transaction) => transaction.productId === product.productId
-        );
+      const existingTransaction = await manager.exists(AppStoreProductTransaction, {
+        where: { transactionId: payload.transactionId, user: { id: payload.appAccountToken } }
+      });
 
-        await this.upsertAppStoreProductTransactions(manager, userId, product, productTransactions);
+      if (existingTransaction) {
+        return;
       }
+
+      const appStoreProduct = await findOneOrFail(manager.getRepository(AppStoreProduct), {
+        where: { productId: payload.productId },
+        relations: { subscriptionPlan: true }
+      });
+
+      await this.constructAndCreateAppStoreProductTransaction(manager, payload, appStoreProduct);
+      await this.processProductPurchase(manager, payload.appAccountToken, appStoreProduct);
     });
   }
 
-  private async upsertAppStoreProductTransactions(
+  private async processProductPurchase(
     manager: EntityManager,
     userId: string,
-    appStoreProduct: AppStoreProduct,
-    transactions: AppStoreProductTransactionDto[]
+    appStoreProduct: AppStoreProduct
   ): Promise<void> {
-    const uniqueTransactions = transactions.filter(
-      (transaction, index, self) => index === self.findIndex((t) => t.transactionId === transaction.transactionId)
-    );
-
-    const transactionIds = uniqueTransactions.map((transaction) => transaction.transactionId);
-    const existingTransactions = await manager.find(AppStoreProductTransaction, {
-      select: { id: true, transactionId: true },
-      where: { transactionId: In(transactionIds), user: { id: userId } }
-    });
-
-    const existingTransactionsMap = new Map(
-      existingTransactions.map((transaction) => [transaction.transactionId, transaction.id])
-    );
-
-    for (const transactionDto of uniqueTransactions) {
-      const existingTransactionId = existingTransactionsMap.get(transactionDto.transactionId);
-
-      if (existingTransactionId) {
-        await this.updateAppStoreProductTransaction(manager, existingTransactionId, transactionDto);
-      } else {
-        await this.createAppStoreProductTransaction(manager, userId, appStoreProduct, transactionDto);
-        await this.coinTransactionsService.addCoinsToWallet(manager, userId, appStoreProduct.quantity);
-      }
+    if (appStoreProduct.productType === EAppStoreProductType.COINS) {
+      await this.coinTransactionsService.addCoinsToWallet(manager, userId, appStoreProduct.quantity);
+    } else if (
+      appStoreProduct.productType === EAppStoreProductType.SUBSCRIPTION_PLAN &&
+      appStoreProduct.subscriptionPlan
+    ) {
+      await this.subscriptionPlanAssignmentService.processSubscriptionPurchase(
+        manager,
+        userId,
+        appStoreProduct.subscriptionPlan.id
+      );
     }
   }
 
-  private async updateAppStoreProductTransaction(
+  private async constructAndCreateAppStoreProductTransaction(
     manager: EntityManager,
-    transactionId: string,
-    dto: AppStoreProductTransactionDto
+    payload: IAppleJwsPayload,
+    appStoreProduct: AppStoreProduct
   ): Promise<void> {
-    await manager.update(AppStoreProductTransaction, transactionId, {
-      transactionId: dto.transactionId,
-      transactionOriginalId: dto.transactionOriginalId,
-      price: dto.price,
-      currency: dto.currency,
-      purchasedQuantity: dto.purchasedQuantity,
-      purchaseDate: dto.purchaseDate,
-      originalPurchaseDate: dto.originalPurchaseDate
-    });
+    const appStoreProductTransactionDto = this.constructAppStoreProductTransactionDto(payload, appStoreProduct);
+    await this.createAppStoreProductTransaction(manager, appStoreProductTransactionDto);
   }
 
   private async createAppStoreProductTransaction(
     manager: EntityManager,
-    userId: string,
-    appStoreProduct: AppStoreProduct,
-    dto: AppStoreProductTransactionDto
+    dto: IAppStoreProductTransaction
   ): Promise<void> {
-    const newTransaction = manager.create(AppStoreProductTransaction, {
-      transactionId: dto.transactionId,
-      transactionOriginalId: dto.transactionOriginalId,
-      price: dto.price,
-      currency: dto.currency,
-      purchasedQuantity: dto.purchasedQuantity,
-      purchaseDate: dto.purchaseDate,
-      originalPurchaseDate: dto.originalPurchaseDate,
-      appStoreProduct,
-      user: { id: userId }
-    });
-    await manager.save(newTransaction);
+    const appStoreProductTransaction = manager.create(AppStoreProductTransaction, dto);
+    await manager.save(AppStoreProductTransaction, appStoreProductTransaction);
+  }
+
+  private constructAppStoreProductTransactionDto(
+    payload: IAppleJwsPayload,
+    appStoreProduct: AppStoreProduct
+  ): IAppStoreProductTransaction {
+    return {
+      transactionId: payload.transactionId,
+      transactionOriginalId: payload.originalTransactionId,
+      price: payload.price,
+      currency: payload.currency,
+      purchasedQuantity: payload.quantity,
+      purchaseDate: new Date(payload.purchaseDate),
+      originalPurchaseDate: new Date(payload.originalPurchaseDate),
+      user: { id: payload.appAccountToken } as User,
+      appStoreProduct
+    };
   }
 }

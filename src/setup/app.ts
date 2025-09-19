@@ -56,6 +56,7 @@ import { join } from "path";
 import { AppStoreProductRoutes } from "../modules/app-store-product/app-store-product.routes";
 import { PremiumSubscriptionsRoutes } from "../modules/premium-subscription/premium-subscription.routes";
 import { SubscriptionPlanRoutes } from "../modules/subscription-plan/subscription-plan.routes";
+import { WebhookRoutes } from "../modules/aws/sqs/webhook.routes";
 
 export class App {
   public express: Application;
@@ -130,7 +131,8 @@ export class App {
       new GroupStatisticRoutes(),
       new AppStoreProductRoutes(),
       new PremiumSubscriptionsRoutes(),
-      new SubscriptionPlanRoutes()
+      new SubscriptionPlanRoutes(),
+      new WebhookRoutes()
     ];
 
     routes.forEach((route) => {

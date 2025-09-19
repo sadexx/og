@@ -5,14 +5,13 @@ import {
   validationMiddlewareParams,
   validationMiddlewareBody,
   validationMiddlewareQuery,
-  customPassportAuthenticate,
-  signatureVerificationMiddleware
+  customPassportAuthenticate
 } from "../../common/middleware";
 import { GetByIdDto } from "../../common/dto";
 import {
   CreateAppStoreProductDto,
   GetAllAppStoreProductTransactionsDto,
-  ProcessAppStoreProductTransactionsDto,
+  ProcessAppStoreProductTransactionDto,
   UpdateAppStoreProductDto
 } from "./common/dto";
 import { globalQueryTransformer } from "../../common/helpers";
@@ -60,12 +59,11 @@ export class AppStoreProductRoutes {
       this.appStoreProductController.createAppStoreProduct.bind(this.appStoreProductController)
     );
     this.router.post(
-      `${this.path}/transactions`,
+      `${this.path}/transaction/verify`,
       customPassportAuthenticate,
       roleGuard([ERole.USER, ERole.COACH]),
-      validationMiddlewareBody(ProcessAppStoreProductTransactionsDto),
-      signatureVerificationMiddleware(),
-      this.appStoreProductTransactionsController.processAppStoreProductTransactions.bind(
+      validationMiddlewareBody(ProcessAppStoreProductTransactionDto),
+      this.appStoreProductTransactionsController.processAppStoreProductTransaction.bind(
         this.appStoreProductTransactionsController
       )
     );

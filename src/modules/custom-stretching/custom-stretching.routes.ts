@@ -10,6 +10,8 @@ import { CreateCustomStretchingDto, UpdateCustomStretchingDto } from "./common/d
 import { GetByIdDto } from "../../common/dto";
 import { roleGuard } from "../../common/guards";
 import { ERole } from "../users/common/enums";
+import { featureAccessGuard } from "../subscription-plan/common/guards";
+import { ESubscriptionFeature } from "../subscription-plan/common/enums";
 
 export class CustomStretchingRoutes {
   public path = `/${ERoutes.CUSTOM_STRETCHES}`;
@@ -25,12 +27,14 @@ export class CustomStretchingRoutes {
     this.router.get(
       `${this.path}/:id`,
       customPassportAuthenticate,
+      featureAccessGuard(ESubscriptionFeature.CUSTOM_STRETCHES),
       validationMiddlewareParams(GetByIdDto),
       this.controller.getById.bind(this.controller)
     );
     this.router.get(
       `${this.path}/:id/custom-stretching-exercises`,
       customPassportAuthenticate,
+      featureAccessGuard(ESubscriptionFeature.CUSTOM_STRETCHES),
       validationMiddlewareParams(GetByIdDto),
       this.controller.getCustomStretchingExercisesInCustomStretches.bind(this.controller)
     );
@@ -38,6 +42,7 @@ export class CustomStretchingRoutes {
       `${this.path}`,
       customPassportAuthenticate,
       roleGuard([ERole.USER, ERole.COACH]),
+      featureAccessGuard(ESubscriptionFeature.CUSTOM_STRETCHES),
       validationMiddlewareBody(CreateCustomStretchingDto),
       this.controller.create.bind(this.controller)
     );
@@ -45,6 +50,7 @@ export class CustomStretchingRoutes {
       `${this.path}/:id`,
       customPassportAuthenticate,
       roleGuard([ERole.USER, ERole.COACH]),
+      featureAccessGuard(ESubscriptionFeature.CUSTOM_STRETCHES),
       validationMiddlewareParams(GetByIdDto),
       validationMiddlewareBody(UpdateCustomStretchingDto),
       this.controller.update.bind(this.controller)
@@ -53,6 +59,7 @@ export class CustomStretchingRoutes {
       `${this.path}/:id`,
       customPassportAuthenticate,
       roleGuard([ERole.USER, ERole.COACH]),
+      featureAccessGuard(ESubscriptionFeature.CUSTOM_STRETCHES),
       validationMiddlewareParams(GetByIdDto),
       this.controller.delete.bind(this.controller)
     );

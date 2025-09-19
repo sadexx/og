@@ -31,4 +31,3 @@ Front-End: `0.2.0`
    Run the following command: `sudo aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 391617323320.dkr.ecr.us-east-1.amazonaws.com`.
 9. Then, stop the old containers `sudo docker-compose down`, and delete the algo-peak image `sudo docker rmi <id>`.
 10. Then pull the new image `sudo docker-compose up -d`.
-# og

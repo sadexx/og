@@ -42,5 +42,6 @@ export enum ERoutes {
   USER_SUBSCRIPTIONS = "user-subscriptions",
   PREMIUM_SUBSCRIPTIONS = "premium-subscriptions",
   GROUPS = "groups",
-  SUBSCRIPTION_PLANS = "subscription-plans"
+  SUBSCRIPTION_PLANS = "subscription-plans",
+  WEBHOOK = "webhook"
 }

@@ -10,6 +10,8 @@ import { StretchingController } from "./controllers";
 import { GetByIdDto } from "../../common/dto";
 import { roleGuard } from "../../common/guards";
 import { ERole } from "../users/common/enums";
+import { featureAccessGuard } from "../subscription-plan/common/guards";
+import { ESubscriptionFeature } from "../subscription-plan/common/enums";
 
 export class StretchingRoutes {
   public path = `/${ERoutes.STRETCHES}`;
@@ -24,11 +26,13 @@ export class StretchingRoutes {
     this.router.get(`${this.path}`, this.controller.getAll.bind(this.controller));
     this.router.get(
       `${this.path}/:id`,
+      featureAccessGuard(ESubscriptionFeature.STRETCHES),
       validationMiddlewareParams(GetByIdDto),
       this.controller.getById.bind(this.controller)
     );
     this.router.get(
       `${this.path}/:id/stretching-exercises`,
+      featureAccessGuard(ESubscriptionFeature.STRETCHES),
       validationMiddlewareParams(GetByIdDto),
       this.controller.getStretchingExercisesInStretching.bind(this.controller)
     );

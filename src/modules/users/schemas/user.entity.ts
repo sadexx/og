@@ -30,6 +30,7 @@ import { CoinTransaction } from "../../coin-transactions/schemas";
 import { UserSubscription } from "../../user-subscriptions/schemas";
 import { GroupMembership } from "../../group/schemas";
 import { AppStoreProductTransaction } from "../../app-store-product/schemas";
+import { SubscriptionPlanAssignment } from "../../subscription-plan/schemas";
 
 @Entity({ name: "user" })
 export class User {
@@ -193,6 +194,11 @@ export class User {
 
   @OneToOne(() => Coach, (coach) => coach.user, { nullable: true })
   coach: Coach;
+
+  @OneToOne(() => SubscriptionPlanAssignment, (subscriptionPlanAssignment) => subscriptionPlanAssignment.user, {
+    nullable: true
+  })
+  subscriptionPlanAssignment: SubscriptionPlanAssignment | null;
 
   @OneToOne(() => UserWallet, (userWallet) => userWallet.user, {
     cascade: true

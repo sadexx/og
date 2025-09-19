@@ -121,7 +121,6 @@ export class UserService {
 
     const defaultWorkoutSettings = await this.settingsService.getSettings();
     const userWorkoutSettings = new UserWorkoutSettings();
-
     Object.assign(userWorkoutSettings, defaultWorkoutSettings);
 
     user.userSettings = new UserSettings();

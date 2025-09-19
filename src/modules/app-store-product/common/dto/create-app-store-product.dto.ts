@@ -1,6 +1,12 @@
-import { IsNotEmpty, IsNumber, IsString } from "class-validator";
+import { IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID } from "class-validator";
+import { EAppStoreProductType } from "../enums";
+import { IsAppStoreProductValid } from "../validators";
 
 export class CreateAppStoreProductDto {
+  @IsEnum(EAppStoreProductType)
+  @IsAppStoreProductValid()
+  productType: EAppStoreProductType;
+
   @IsNotEmpty()
   @IsString()
   productId: string;
@@ -16,4 +22,8 @@ export class CreateAppStoreProductDto {
   @IsNotEmpty()
   @IsNumber()
   quantity: number;
+
+  @IsOptional()
+  @IsUUID()
+  subscriptionPlanId?: string;
 }

@@ -5,6 +5,8 @@ import { UpdateRollingPlanDto } from "./common/dto";
 import { RollingPlanController } from "./controllers";
 import { roleGuard } from "../../common/guards";
 import { ERole } from "../users/common/enums";
+import { featureAccessGuard } from "../subscription-plan/common/guards";
+import { ESubscriptionFeature } from "../subscription-plan/common/enums";
 
 export class RollingPlanRoutes {
   public path = `/${ERoutes.ROLLING_PLANS}`;
@@ -20,12 +22,14 @@ export class RollingPlanRoutes {
       `${this.path}`,
       customPassportAuthenticate,
       roleGuard([ERole.USER, ERole.COACH]),
+      featureAccessGuard(ESubscriptionFeature.ROLLING_PLAN),
       this.controller.get.bind(this.controller)
     );
     this.router.put(
       `${this.path}`,
       customPassportAuthenticate,
       roleGuard([ERole.USER, ERole.COACH]),
+      featureAccessGuard(ESubscriptionFeature.ROLLING_PLAN),
       validationMiddlewareBody(UpdateRollingPlanDto),
       this.controller.update.bind(this.controller)
     );
@@ -33,6 +37,7 @@ export class RollingPlanRoutes {
       `${this.path}`,
       customPassportAuthenticate,
       roleGuard([ERole.USER, ERole.COACH]),
+      featureAccessGuard(ESubscriptionFeature.ROLLING_PLAN),
       this.controller.deleteAllCycle.bind(this.controller)
     );
   }

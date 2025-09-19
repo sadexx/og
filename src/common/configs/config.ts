@@ -31,7 +31,8 @@ import {
   DEFAULT_FRONT_END_URL,
   NUMBER_BYTES_IN_KILOBYTE,
   NUMBER_OF_HOURS_IN_DAY,
-  NUMBER_OF_MINUTES_IN_HOUR
+  NUMBER_OF_MINUTES_IN_HOUR,
+  DEFAULT_AWS_SQS_INTERVAL_TIME_MIN
 } from "../constants";
 import { EEnvironment } from "../enums";
 
@@ -75,7 +76,7 @@ export const AWS_ACCESS_KEY_ID: string = process.env.AWS_ACCESS_KEY_ID ?? DEFAUL
 export const AWS_SECRET_ACCESS_KEY: string = process.env.AWS_SECRET_ACCESS_KEY ?? DEFAULT_API_AWS_SECRET;
 export const AWS_REGION: string = process.env.AWS_REGION ?? DEFAULT_API_AWS_REGION;
 export const S3_BUCKET_NAME: string = process.env.S3_BUCKET_NAME ?? DEFAULT_API_S3_BUCKET_NAME;
-export const ENVIRONMENT: string = process.env.ENVIRONMENT ?? EEnvironment.PRODUCTION;
+export const ENVIRONMENT: EEnvironment = (process.env.ENVIRONMENT as EEnvironment) ?? EEnvironment.PRODUCTION;
 export const POSTGRES_PORT: string | number = process.env.POSTGRES_PORT ?? DEFAULT_API_POSTGRES_PORT;
 export const POSTGRES_USER: string = process.env.POSTGRES_USER ?? DEFAULT_API_POSTGRES_USER;
 export const POSTGRES_HOST: string = process.env.POSTGRES_HOST ?? DEFAULT_API_POSTGRES_HOST;
@@ -85,3 +86,8 @@ export const REDIS_URL: string = `${process.env.REDIS_URL_START || "redis://"}${
   process.env.REDIS_HOST || DEFAULT_API_REDIS_HOST
 }:${process.env.REDIS_PORT || DEFAULT_API_REDIS_PORT}`;
 export const TRANSACTION_SECRET: string = process.env.TRANSACTION_SECRET ?? DEFAULT_TRANSACTION_SECRET;
+export const AWS_SQS_QUEUE_URL: string = process.env.AWS_SQS_QUEUE_URL ?? "";
+export const AWS_SQS_INTERVAL_TIME_MIN: number = parseInt(
+  process.env.AWS_SQS_INTERVAL_TIME_MIN || DEFAULT_AWS_SQS_INTERVAL_TIME_MIN
+);
+export const APPLE_BUNDLE_ID: string = process.env.APPLE_BUNDLE_ID ?? "";
