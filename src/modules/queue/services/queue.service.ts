@@ -15,10 +15,8 @@ import {
   NUMBER_OF_MINUTES_IN_FIFTEEN_DAYS,
   NUMBER_OF_SECONDS_IN_MINUTE
 } from "../../../common/constants";
-import {
-  AppStoreProductTransactionService
-  // AppStoreTransactionVerificationService
-} from "../../app-store-product/services";
+import { AppStoreProductTransactionService } from "../../app-store-product/services";
+import { IAppStoreWebhookData } from "../../app-store-product/common/interfaces";
 
 export class QueueService {
   private readonly workoutExerciseRepository: Repository<WorkoutExercise>;
@@ -32,10 +30,7 @@ export class QueueService {
   private readonly workoutWorker: Worker;
   private readonly processAppleWebhookWorker: Worker;
 
-  constructor(
-    // private readonly verificationService = new AppStoreTransactionVerificationService(),
-    private readonly appStoreProductTransactionService = new AppStoreProductTransactionService()
-  ) {
+  constructor(private readonly appStoreTransactionService = new AppStoreProductTransactionService()) {
     this.workoutExerciseRepository = AppDataSource.getRepository(WorkoutExercise);
     this.workoutRepository = AppDataSource.getRepository(Workout);
     this.calculateWorkoutExerciseQueue = new Queue("calculate-workout-exercise", { connection });
@@ -146,40 +141,11 @@ export class QueueService {
           continue;
         }
 
-        try {
-          const webhookData = JSON.parse(message.Body) as { signedPayload: string };
-
-          if (webhookData.signedPayload) {
-            // Debug: Decode JWS header without verification
-            const parts = webhookData.signedPayload.split(".");
-            const header = JSON.parse(Buffer.from(parts[0], "base64url").toString());
-            const payload = JSON.parse(Buffer.from(parts[1], "base64url").toString());
-
-            logger.info("Apple Webhook JWS Debug", {
-              header,
-              payloadType: payload.notificationType,
-              hasKid: !!header.kid,
-              algorithm: header.alg,
-              x5c: header.x5c ? "present" : "missing"
-            });
-
-            // Apple webhooks use certificate chain (x5c) instead of kid
-            if (header.x5c && !header.kid) {
-              logger.info("Webhook uses certificate chain verification, not JWKS");
-              // For now, skip verification and process the inner transaction
-              const transactionJWS = payload.data.signedTransactionInfo;
-
-              await this.appStoreProductTransactionService.processAppStoreProductTransaction({
-                jwsRepresentation: transactionJWS
-              });
-            }
-          }
-        } catch (parseError) {
-          logger.error(`Failed to parse Apple webhook message: ${message.MessageId}`, parseError);
-        }
+        const webhookData = JSON.parse(message.Body) as IAppStoreWebhookData;
+        await this.appStoreTransactionService.processAppStoreWebhookProductTransaction(webhookData);
       }
     } catch (error) {
-      logger.error("Error processing Apple webhook job:", error);
+      logger.error("Error processing job:", error);
     }
   }
 

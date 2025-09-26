@@ -1,3 +1,4 @@
+import { Environment } from "@apple/app-store-server-library";
 import {
   DEFAULT_API_AWS_REGION,
   DEFAULT_API_AWS_SECRET,
@@ -90,4 +91,6 @@ export const AWS_SQS_QUEUE_URL: string = process.env.AWS_SQS_QUEUE_URL ?? "";
 export const AWS_SQS_INTERVAL_TIME_MIN: number = parseInt(
   process.env.AWS_SQS_INTERVAL_TIME_MIN || DEFAULT_AWS_SQS_INTERVAL_TIME_MIN
 );
+export const APPLE_APP_ID: number = parseInt(process.env.APPLE_APP_ID ?? "");
 export const APPLE_BUNDLE_ID: string = process.env.APPLE_BUNDLE_ID ?? "";
+export const APPLE_ENVIRONMENT: Environment = (process.env.APPLE_ENVIRONMENT as Environment) ?? Environment.SANDBOX;

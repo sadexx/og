@@ -1,7 +1,7 @@
 import { SubscriptionPlan } from "../../../subscription-plan/schemas";
 import { EAppStoreProductType } from "../enums";
 
-export interface ICreateAppStoreProduct {
+export interface IAppStoreProduct {
   productType: EAppStoreProductType;
   productId: string;
   name: string;

@@ -13,6 +13,7 @@ import {
   NUMBER_OF_SECONDS_IN_MINUTE
 } from "../../../common/constants";
 import { SubscriptionPlanAssignmentService } from "./subscription-plan-assignment.service";
+import { BadRequestException } from "../../../common/exceptions";
 
 export class SubscriptionPlanService {
   private static instance: SubscriptionPlanService;
@@ -70,7 +71,7 @@ export class SubscriptionPlanService {
 
     if (!subscriptionPlan) {
       await this.subscriptionPlanAssignmentService.invalidateSubscriptionPlanTypeCache(userId);
-      throw new Error(`Subscription plan not found for type: ${subscriptionPlanType}`);
+      throw new BadRequestException(`Subscription plan not found for type: ${subscriptionPlanType}`);
     }
 
     return subscriptionPlan;

@@ -26,12 +26,14 @@ export class StretchingRoutes {
     this.router.get(`${this.path}`, this.controller.getAll.bind(this.controller));
     this.router.get(
       `${this.path}/:id`,
+      customPassportAuthenticate,
       featureAccessGuard(ESubscriptionFeature.STRETCHES),
       validationMiddlewareParams(GetByIdDto),
       this.controller.getById.bind(this.controller)
     );
     this.router.get(
       `${this.path}/:id/stretching-exercises`,
+      customPassportAuthenticate,
       featureAccessGuard(ESubscriptionFeature.STRETCHES),
       validationMiddlewareParams(GetByIdDto),
       this.controller.getStretchingExercisesInStretching.bind(this.controller)

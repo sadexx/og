@@ -5,12 +5,15 @@ import { GetAllAppStoreProductTransactionsDto, ProcessAppStoreProductTransaction
 import { PaginationQueryOutput } from "../../../common/outputs";
 import { CoinTransactionsService } from "../../coin-transactions/services";
 import { ESortOrder } from "../../../common/enums";
-import { AppStoreTransactionVerificationService } from "./app-store-transaction-verification.service";
 import { findOneOrFail } from "../../../common/utils";
-import { EAppStoreProductType } from "../common/enums";
-import { IAppleJwsPayload, IAppStoreProductTransaction } from "../common/interfaces";
+import { EAppStoreProductType, ECurrencyEnum } from "../common/enums";
+import { IAppStoreProductTransaction, IAppStoreWebhookData } from "../common/interfaces";
 import { User } from "../../users/schemas";
 import { SubscriptionPlanAssignmentService } from "../../subscription-plan/services";
+import { AppStoreTransactionVerificationService } from "./app-store-transaction-verification.service";
+import { JWSTransactionDecodedPayload } from "@apple/app-store-server-library";
+import { BadRequestException } from "../../../common/exceptions";
+import { ONE_HUNDRED } from "../../../common/constants";
 
 export class AppStoreProductTransactionService {
   private readonly appStoreProductTransactionRepository: Repository<AppStoreProductTransaction>;
@@ -54,16 +57,32 @@ export class AppStoreProductTransactionService {
     };
   }
 
-  public async processAppStoreProductTransaction(dto: ProcessAppStoreProductTransactionDto): Promise<void> {
-    const payload = await this.appStoreTransactionVerificationService.verifyAndDecodeTransactionJWS(
-      dto.jwsRepresentation
+  public async processAppStoreWebhookProductTransaction(webhookData: IAppStoreWebhookData): Promise<void> {
+    const decodedNotification = await this.appStoreTransactionVerificationService.verifyAndDecodeWebhook(
+      webhookData.signedPayload
     );
 
-    console.log("USERID", payload.appAccountToken);
+    if (!decodedNotification.data || !decodedNotification.data.signedTransactionInfo) {
+      throw new BadRequestException("Apple webhook data is missing.");
+    }
+
+    await this.processAppStoreProductTransaction({ jwsRepresentation: decodedNotification.data.signedTransactionInfo });
+  }
+
+  public async processAppStoreProductTransaction(dto: ProcessAppStoreProductTransactionDto): Promise<void> {
+    const payload = await this.appStoreTransactionVerificationService.verifyAndDecodeTransaction(dto.jwsRepresentation);
 
     await AppDataSource.manager.transaction(async (manager) => {
+      if (!payload.appAccountToken) {
+        throw new BadRequestException("Missing user identifier in transaction.");
+      }
+
       const existingTransaction = await manager.exists(AppStoreProductTransaction, {
-        where: { transactionId: payload.transactionId, user: { id: payload.appAccountToken } }
+        where: {
+          transactionId: payload.transactionId,
+          transactionOriginalId: payload.originalTransactionId,
+          user: { id: payload.appAccountToken }
+        }
       });
 
       if (existingTransaction) {
@@ -71,37 +90,19 @@ export class AppStoreProductTransactionService {
       }
 
       const appStoreProduct = await findOneOrFail(manager.getRepository(AppStoreProduct), {
+        select: { id: true, productType: true, quantity: true, subscriptionPlan: { id: true } },
         where: { productId: payload.productId },
         relations: { subscriptionPlan: true }
       });
 
       await this.constructAndCreateAppStoreProductTransaction(manager, payload, appStoreProduct);
-      await this.processProductPurchase(manager, payload.appAccountToken, appStoreProduct);
+      await this.processProductPurchase(manager, payload.appAccountToken, appStoreProduct, payload.expiresDate);
     });
-  }
-
-  private async processProductPurchase(
-    manager: EntityManager,
-    userId: string,
-    appStoreProduct: AppStoreProduct
-  ): Promise<void> {
-    if (appStoreProduct.productType === EAppStoreProductType.COINS) {
-      await this.coinTransactionsService.addCoinsToWallet(manager, userId, appStoreProduct.quantity);
-    } else if (
-      appStoreProduct.productType === EAppStoreProductType.SUBSCRIPTION_PLAN &&
-      appStoreProduct.subscriptionPlan
-    ) {
-      await this.subscriptionPlanAssignmentService.processSubscriptionPurchase(
-        manager,
-        userId,
-        appStoreProduct.subscriptionPlan.id
-      );
-    }
   }
 
   private async constructAndCreateAppStoreProductTransaction(
     manager: EntityManager,
-    payload: IAppleJwsPayload,
+    payload: JWSTransactionDecodedPayload,
     appStoreProduct: AppStoreProduct
   ): Promise<void> {
     const appStoreProductTransactionDto = this.constructAppStoreProductTransactionDto(payload, appStoreProduct);
@@ -117,19 +118,44 @@ export class AppStoreProductTransactionService {
   }
 
   private constructAppStoreProductTransactionDto(
-    payload: IAppleJwsPayload,
+    payload: JWSTransactionDecodedPayload,
     appStoreProduct: AppStoreProduct
   ): IAppStoreProductTransaction {
+    const purchaseDate = new Date(payload.purchaseDate as number);
+    const originalPurchaseDate = new Date(payload.originalPurchaseDate as number);
+
     return {
-      transactionId: payload.transactionId,
-      transactionOriginalId: payload.originalTransactionId,
-      price: payload.price,
-      currency: payload.currency,
-      purchasedQuantity: payload.quantity,
-      purchaseDate: new Date(payload.purchaseDate),
-      originalPurchaseDate: new Date(payload.originalPurchaseDate),
+      transactionId: payload.transactionId as string,
+      transactionOriginalId: payload.originalTransactionId as string,
+      price: (payload.price as number) / ONE_HUNDRED,
+      currency: payload.currency as ECurrencyEnum,
+      purchasedQuantity: payload.quantity as number,
       user: { id: payload.appAccountToken } as User,
+      purchaseDate,
+      originalPurchaseDate,
       appStoreProduct
     };
+  }
+
+  private async processProductPurchase(
+    manager: EntityManager,
+    userId: string,
+    appStoreProduct: AppStoreProduct,
+    expiresDate?: number
+  ): Promise<void> {
+    if (appStoreProduct.productType === EAppStoreProductType.COINS) {
+      await this.coinTransactionsService.addCoinsToWallet(manager, userId, appStoreProduct.quantity);
+    } else if (
+      appStoreProduct.productType === EAppStoreProductType.SUBSCRIPTION_PLAN &&
+      appStoreProduct.subscriptionPlan &&
+      expiresDate
+    ) {
+      await this.subscriptionPlanAssignmentService.processSubscriptionPurchase(
+        manager,
+        userId,
+        appStoreProduct.subscriptionPlan.id,
+        expiresDate
+      );
+    }
   }
 }

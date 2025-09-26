@@ -9,10 +9,19 @@ import { BadRequestException } from "../../../../common/exceptions";
 import { QueueService } from "../../../queue/services";
 
 export class WebhookService {
+  private static instance: WebhookService;
   constructor(
-    private readonly awsSQSService = new AwsSQSService(),
+    private readonly awsSQSService = AwsSQSService.getInstance(),
     private readonly queueService = new QueueService()
   ) {}
+
+  public static getInstance(): WebhookService {
+    if (!WebhookService.instance) {
+      WebhookService.instance = new WebhookService();
+    }
+
+    return WebhookService.instance;
+  }
 
   public async startCheckStatusWebhook(): Promise<void> {
     await this.processAwsSqsQueue();
@@ -36,7 +45,6 @@ export class WebhookService {
 
   public async processAwsSqsQueue(): Promise<void> {
     const sqsMessages = await this.awsSQSService.pollMessages();
-    console.log(sqsMessages);
 
     if (sqsMessages.length > 0) {
       const appleMessages: Message[] = [];

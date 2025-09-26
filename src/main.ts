@@ -1,12 +1,14 @@
 import "dotenv/config";
 import { App } from "./setup/app";
-import { APP_PORT } from "./common/configs/config";
+import { APP_PORT, ENVIRONMENT } from "./common/configs/config";
 import { logger } from "./setup/logger";
 import { redisClient } from "./common/configs/redis.config";
 import { collectDefaultMetrics } from "prom-client";
 import { initializeStrategies } from "./modules/auth/common/strategies";
 import { CronService } from "./modules/cron/services";
 import { initializeDatabase } from "./setup/initialize-database";
+import { EEnvironment } from "./common/enums";
+import { WebhookService } from "./modules/aws/sqs/services";
 
 const main = (): void => {
   initializeDatabase();
@@ -25,6 +27,11 @@ const main = (): void => {
 
   const cronService = CronService.getInstance();
   cronService.startAllJobs();
+
+  if (ENVIRONMENT !== EEnvironment.LOCAL) {
+    const webhookService = WebhookService.getInstance();
+    webhookService.startCheckStatusWebhook();
+  }
 
   app.express.listen(APP_PORT, function () {
     logger.info(`Server started on port ${APP_PORT}`);

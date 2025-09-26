@@ -1,126 +1,75 @@
-import jwksRsa, { JwksClient, SigningKey } from "jwks-rsa";
-import * as jwt from "jsonwebtoken";
-import { JwtHeader, JwtPayload, VerifyErrors } from "jsonwebtoken";
-import { InternalServerError, UnauthorizedException } from "../../../common/exceptions";
+import {
+  JWSTransactionDecodedPayload,
+  ResponseBodyV2DecodedPayload,
+  SignedDataVerifier
+} from "@apple/app-store-server-library";
+import path from "node:path";
+import fs from "node:fs";
+import { APPLE_APP_ID, APPLE_BUNDLE_ID, APPLE_ENVIRONMENT } from "../../../common/configs/config";
+import { UnauthorizedException } from "../../../common/exceptions";
 import { logger } from "../../../setup/logger";
-import { IAppleJwsPayload, IAppleWebhookPayload } from "../common/interfaces";
-import { APPLE_BUNDLE_ID } from "../../../common/configs/config";
 
 export class AppStoreTransactionVerificationService {
-  private readonly jwksClient: JwksClient;
-
-  private readonly JWKS_OPTIONS: jwksRsa.Options = {
-    jwksUri: "https://appleid.apple.com/auth/keys",
-    cache: true,
-    cacheMaxAge: 86400000,
-    rateLimit: true,
-    jwksRequestsPerMinute: 10,
-    timeout: 30000
-  };
-
-  private readonly JWT_OPTIONS: jwt.VerifyOptions = {
-    algorithms: ["ES256"],
-    issuer: "appstoreconnect-v1",
-    clockTolerance: 60
-  };
+  private readonly verifier: SignedDataVerifier;
 
   constructor() {
-    this.jwksClient = jwksRsa(this.JWKS_OPTIONS);
+    const enableOnlineChecks = true;
+    const appleRootCAs: Buffer[] = this.loadAppleRootCertificates();
+
+    this.verifier = new SignedDataVerifier(
+      appleRootCAs,
+      enableOnlineChecks,
+      APPLE_ENVIRONMENT,
+      APPLE_BUNDLE_ID,
+      APPLE_APP_ID
+    );
   }
 
   /**
    * Verifies and decodes Apple transaction JWS token
-   * @param jws - The transaction JWS token to verify
+   * @param jwsRepresentation - The transaction JWS token to verify
    * @returns Decoded and verified transaction payload
-   * @throws UnauthorizedException if verification fails
    */
-  public async verifyAndDecodeTransactionJWS(jws: string): Promise<IAppleJwsPayload> {
+  public async verifyAndDecodeTransaction(jwsRepresentation: string): Promise<JWSTransactionDecodedPayload> {
     try {
-      const payload = await this.verifyJWSSignature<IAppleJwsPayload>(jws);
+      const decodedTransaction = await this.verifier.verifyAndDecodeTransaction(jwsRepresentation);
 
-      // Validate bundle ID for security
-      if (payload.bundleId !== APPLE_BUNDLE_ID) {
-        throw new UnauthorizedException(`Invalid bundle ID. Expected: ${APPLE_BUNDLE_ID}`);
-      }
-
-      return payload;
+      return decodedTransaction;
     } catch (error) {
-      logger.error(`Failed to verify Apple transaction JWS: ${(error as Error).message}`);
-      throw new UnauthorizedException("Invalid Apple JWS signature");
+      logger.error(`Failed to verify Apple jwsRepresentation: ${(error as Error).message}`);
+      throw new UnauthorizedException("Apple jwsRepresentation verification failed.");
     }
   }
 
   /**
-   * Verifies and decodes Apple webhook JWS token
-   * @param jws - The webhook JWS token to verify
+   * Verifies and decodes Apple webhook notification
+   * @param signedPayload - The webhook signedPayload to verify
    * @returns Decoded and verified webhook payload
-   * @throws UnauthorizedException if verification fails
    */
-  public async verifyAndDecodeWebhookJWS(jws: string): Promise<IAppleWebhookPayload> {
+  public async verifyAndDecodeWebhook(signedPayload: string): Promise<ResponseBodyV2DecodedPayload> {
     try {
-      const payload = await this.verifyJWSSignature<IAppleWebhookPayload>(jws);
+      const decodedNotification = await this.verifier.verifyAndDecodeNotification(signedPayload);
 
-      return payload;
+      return decodedNotification;
     } catch (error) {
-      logger.error(`Failed to verify Apple webhook JWS: ${(error as Error).message}`);
-      throw new UnauthorizedException("Invalid Apple webhook JWS signature");
+      logger.error(`Failed to verify Apple webhook signedPayload: ${(error as Error).message}`);
+      throw new UnauthorizedException("Apple webhook signedPayload verification failed.");
     }
   }
 
   /**
-   * Verifies the JWS signature using Apple's public key
-   * @param jws - The JWS token to verify
-   * @returns Promise that resolves to the decoded payload
-   * @throws UnauthorizedException if signature verification fails
-   * @private
+   * Loads the Apple Root CA certificate required for verifying signed
+   * App Store JWS tokens (transactions, notifications, and renewal info).
    */
-  private async verifyJWSSignature<ReturnType>(jws: string): Promise<ReturnType> {
-    return new Promise<ReturnType>((resolve, reject) => {
-      jwt.verify(
-        jws,
-        this.getApplePublicKey.bind(this),
-        this.JWT_OPTIONS,
-        (err: VerifyErrors | null, decoded: string | JwtPayload | undefined) => {
-          if (err) {
-            return reject(new UnauthorizedException(`JWS verification failed: ${err.message}`));
-          }
+  private loadAppleRootCertificates(): Buffer[] {
+    const certificatePath = path.join(__dirname, "../common/certificates/AppleRootCA-G3.cer");
 
-          if (!decoded || typeof decoded === "string") {
-            return reject(new UnauthorizedException("Invalid token payload"));
-          }
-
-          resolve(decoded as ReturnType);
-        }
-      );
-    });
-  }
-
-  /**
-   * Retrieves Apple's public key for JWT signature verification
-   * @param header - JWT header containing the key ID
-   * @param callback - Callback function to handle the retrieved key or error
-   * @throws UnauthorizedException if 'kid' is missing from header
-   * @throws InternalServerError if unable to retrieve signing key
-   * @private
-   */
-  private getApplePublicKey(header: JwtHeader, callback: jwt.SigningKeyCallback): void {
-    if (!header.kid) {
-      return callback(new UnauthorizedException("Missing 'kid' in JWT header"));
+    if (!fs.existsSync(certificatePath)) {
+      throw new Error(`Apple Root CA certificate not found at: ${certificatePath}`);
     }
 
-    this.jwksClient.getSigningKey(header.kid, (error: Error | null, key?: SigningKey) => {
-      if (error) {
-        logger.error("Failed to retrieve Apple signing key", { kid: header.kid, error: error.message });
+    const appleRootCA = fs.readFileSync(certificatePath);
 
-        return callback(new InternalServerError("Unable to retrieve Apple signing key"));
-      }
-
-      if (!key) {
-        return callback(new InternalServerError("Apple signing key not found"));
-      }
-
-      const signingKey = key.getPublicKey();
-      callback(null, signingKey);
-    });
+    return [appleRootCA];
   }
 }

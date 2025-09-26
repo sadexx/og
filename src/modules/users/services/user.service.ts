@@ -77,6 +77,9 @@ export class UserService {
       .addSelect(["userSubscriptions.id", "userSubscriptions.endDate", "userSubscriptions.isAutoRenewable"])
       .leftJoin("userSubscriptions.premiumSubscription", "premiumSubscription")
       .addSelect(["premiumSubscription.id", "premiumSubscription.price", "premiumSubscription.duration"])
+      .leftJoin("user.subscriptionPlanAssignment", "subscriptionPlanAssignment")
+      .addSelect(["subscriptionPlanAssignment.id", "subscriptionPlanAssignment.endDate"])
+      .leftJoinAndSelect("subscriptionPlanAssignment.subscriptionPlan", "subscriptionPlan")
       .where("user.id = :id", { id })
       .getOne();
 

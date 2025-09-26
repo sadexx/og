@@ -21,8 +21,10 @@ import { logger } from "../../../../setup/logger";
 import { InternalServerError } from "../../../../common/exceptions";
 
 export class AwsSQSService {
+  private static instance: AwsSQSService;
   private readonly sqsClient: SQSClient;
   private readonly queueUrl: string;
+
   constructor() {
     const sqsClientOptions: SQSClientConfig = { region: AWS_REGION };
 
@@ -35,6 +37,14 @@ export class AwsSQSService {
 
     this.sqsClient = new SQSClient(sqsClientOptions);
     this.queueUrl = AWS_SQS_QUEUE_URL;
+  }
+
+  public static getInstance(): AwsSQSService {
+    if (!AwsSQSService.instance) {
+      AwsSQSService.instance = new AwsSQSService();
+    }
+
+    return AwsSQSService.instance;
   }
 
   public async pollMessages(): Promise<Message[]> {

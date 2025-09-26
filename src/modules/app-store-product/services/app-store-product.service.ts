@@ -6,7 +6,7 @@ import { PaginationQueryOutput } from "../../../common/outputs";
 import { findOneOrFail } from "../../../common/utils";
 import { CreateAppStoreProductDto, UpdateAppStoreProductDto } from "../common/dto";
 import { BadRequestException } from "../../../common/exceptions";
-import { ICreateAppStoreProduct } from "../common/interfaces";
+import { IAppStoreProduct } from "../common/interfaces";
 import { SubscriptionPlan } from "../../subscription-plan/schemas";
 import { EAppStoreProductType } from "../common/enums";
 import { ESubscriptionPlanType } from "../../subscription-plan/common/enums";
@@ -71,14 +71,14 @@ export class AppStoreProductService {
     await this.saveAppStoreProduct(appStoreProductDto);
   }
 
-  private async saveAppStoreProduct(dto: ICreateAppStoreProduct): Promise<AppStoreProduct> {
+  private async saveAppStoreProduct(dto: IAppStoreProduct): Promise<AppStoreProduct> {
     const newAppStoreProductDto = this.appStoreProductRepository.create(dto);
     const savedAppStoreProduct = await this.appStoreProductRepository.save(newAppStoreProductDto);
 
     return savedAppStoreProduct;
   }
 
-  private constructAppStoreProductDto(dto: CreateAppStoreProductDto): ICreateAppStoreProduct {
+  private constructAppStoreProductDto(dto: CreateAppStoreProductDto): IAppStoreProduct {
     const determinedSubscriptionPlan =
       dto.productType === EAppStoreProductType.SUBSCRIPTION_PLAN
         ? ({ id: dto.subscriptionPlanId } as SubscriptionPlan)
@@ -164,10 +164,6 @@ export class AppStoreProductService {
       whereConditions.push({ name: dto.name });
     }
 
-    if (dto.subscriptionPlanId) {
-      whereConditions.push({ subscriptionPlan: { id: dto.subscriptionPlanId } });
-    }
-
     const finalConditions = excludeId
       ? whereConditions.map((condition) => ({ ...condition, id: Not(excludeId) }))
       : whereConditions;
@@ -177,9 +173,7 @@ export class AppStoreProductService {
     });
 
     if (existingAppStoreProduct) {
-      throw new BadRequestException(
-        "App Store Product with the same productId, subscription plan or name already exists."
-      );
+      throw new BadRequestException("App Store Product with the same productId or name already exists.");
     }
   }
 }

@@ -3,7 +3,7 @@ import { EHttpResponseCode } from "../../../../common/enums";
 import { WebhookService } from "../services/webhook.service";
 
 export class WebhookController {
-  constructor(private readonly webhookService = new WebhookService()) {}
+  constructor(private readonly webhookService = WebhookService.getInstance()) {}
 
   public async getManualStatusCheck(_req: Request, res: Response, next: NextFunction): Promise<void> {
     try {

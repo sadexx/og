@@ -49,16 +49,22 @@ export class SubscriptionPlanAssignmentService {
   public async processSubscriptionPurchase(
     manager: EntityManager,
     userId: string,
-    subscriptionPlanId: string
+    subscriptionPlanId: string,
+    expiresDate: number
   ): Promise<void> {
     const existingSubscriptionPlanAssignment = await manager.findOne(SubscriptionPlanAssignment, {
       where: { user: { id: userId } }
     });
 
     if (existingSubscriptionPlanAssignment) {
-      await this.updateSubscriptionPlanAssignment(manager, existingSubscriptionPlanAssignment, subscriptionPlanId);
+      await this.updateSubscriptionPlanAssignment(
+        manager,
+        existingSubscriptionPlanAssignment,
+        subscriptionPlanId,
+        expiresDate
+      );
     } else {
-      await this.constructAndCreateSubscriptionPlanAssignment(manager, userId, subscriptionPlanId);
+      await this.constructAndCreateSubscriptionPlanAssignment(manager, userId, subscriptionPlanId, expiresDate);
     }
 
     await this.addSubscriptionCoins(manager, userId, subscriptionPlanId);
@@ -68,10 +74,10 @@ export class SubscriptionPlanAssignmentService {
   private async updateSubscriptionPlanAssignment(
     manager: EntityManager,
     existingSubscriptionPlanAssignment: SubscriptionPlanAssignment,
-    subscriptionPlanId: string
+    subscriptionPlanId: string,
+    expiresDate: number
   ): Promise<void> {
-    const endDate = new Date();
-    endDate.setMonth(endDate.getMonth() + 1);
+    const endDate = new Date(expiresDate);
 
     await manager.update(SubscriptionPlanAssignment, existingSubscriptionPlanAssignment.id, {
       endDate,
@@ -82,9 +88,14 @@ export class SubscriptionPlanAssignmentService {
   private async constructAndCreateSubscriptionPlanAssignment(
     manager: EntityManager,
     userId: string,
-    subscriptionPlanId: string
+    subscriptionPlanId: string,
+    expiresDate: number
   ): Promise<void> {
-    const subscriptionPlanAssignmentDto = this.constructSubscriptionPlanAssignmentDto(userId, subscriptionPlanId);
+    const subscriptionPlanAssignmentDto = this.constructSubscriptionPlanAssignmentDto(
+      userId,
+      subscriptionPlanId,
+      expiresDate
+    );
     await this.createSubscriptionPlanAssignment(manager, subscriptionPlanAssignmentDto);
   }
 
@@ -98,10 +109,10 @@ export class SubscriptionPlanAssignmentService {
 
   private constructSubscriptionPlanAssignmentDto(
     userId: string,
-    subscriptionPlanId: string
+    subscriptionPlanId: string,
+    expiresDate: number
   ): ISubscriptionPlanAssignment {
-    const endDate = new Date();
-    endDate.setMonth(endDate.getMonth() + 1);
+    const endDate = new Date(expiresDate);
 
     return {
       endDate,

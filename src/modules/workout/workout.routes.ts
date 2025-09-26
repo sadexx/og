@@ -33,24 +33,28 @@ export class WorkoutsRoutes {
   private initializeRoutes(): void {
     this.router.get(
       `${this.path}`,
+      customPassportAuthenticate,
       featureAccessGuard(ESubscriptionFeature.WORKOUT_LIBRARY),
       validationMiddlewareQuery(GetAllWorkoutsDto, globalQueryTransformer),
       this.controller.getAll.bind(this.controller)
     );
     this.router.get(
       `${this.path}/random`,
+      customPassportAuthenticate,
       featureAccessGuard(ESubscriptionFeature.WORKOUT_LIBRARY),
       validationMiddlewareQuery(GetRandomWorkoutQueryDto, globalQueryTransformer),
       this.controller.getRandomWorkout.bind(this.controller)
     );
     this.router.get(
       `${this.path}/:id`,
+      customPassportAuthenticate,
       featureAccessGuard(ESubscriptionFeature.WORKOUT_LIBRARY),
       validationMiddlewareParams(GetByIdDto),
       this.controller.getById.bind(this.controller)
     );
     this.router.get(
       `${this.path}/:id/workout-exercises`,
+      customPassportAuthenticate,
       featureAccessGuard(ESubscriptionFeature.WORKOUT_LIBRARY),
       validationMiddlewareParams(GetByIdDto),
       this.controller.getWorkoutExercisesInWorkout.bind(this.controller)

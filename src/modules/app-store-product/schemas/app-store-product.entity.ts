@@ -3,8 +3,8 @@ import {
   CreateDateColumn,
   Entity,
   JoinColumn,
+  ManyToOne,
   OneToMany,
-  OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn
 } from "typeorm";
@@ -42,7 +42,7 @@ export class AppStoreProduct {
   )
   appStoreProductTransactions: AppStoreProductTransaction[];
 
-  @OneToOne(() => SubscriptionPlan, (subscriptionPlan) => subscriptionPlan.appStoreProduct, { nullable: true })
+  @ManyToOne(() => SubscriptionPlan, (subscriptionPlan) => subscriptionPlan.appStoreProducts, { nullable: true })
   @JoinColumn({
     name: "subscription_plan_id",
     referencedColumnName: "id",

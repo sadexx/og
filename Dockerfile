@@ -21,6 +21,8 @@ ENV NODE_ENV development
 COPY src/ src/
 COPY public/ /usr/src/app/public
 COPY global-bundle.pem /usr/src/app/
+COPY src/modules/deep-link/.well-known/apple-app-site-association build/modules/deep-link/.well-known/
+COPY src/modules/app-store-product/common/certificates/AppleRootCA-G3.cer build/modules/app-store-product/common/certificates/
 
 # Build the app
 RUN npm run build
@@ -66,6 +68,8 @@ ENV NODE_ENV production
 COPY --chown=node:node src/ src/
 COPY --chown=node:node public/ public/
 COPY --chown=node:node global-bundle.pem /usr/src/app/
+COPY --chown=node:node src/modules/deep-link/.well-known/apple-app-site-association build/modules/deep-link/.well-known/
+COPY --chown=node:node src/modules/app-store-product/common/certificates/AppleRootCA-G3.cer build/modules/app-store-product/common/certificates/
 
 # Compile TypeScript
 RUN npm run build
